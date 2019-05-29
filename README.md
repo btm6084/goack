@@ -47,6 +47,3 @@ Example:
 	]
 }
 ```
-
-# Vendoring
-https://github.com/kardianos/govendor is the current vendoring solution of choice
