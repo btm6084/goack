@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/btm6084/utilities/fileUtil"
+	"github.com/btm6084/utilities/fileutil"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -145,11 +145,11 @@ func search(cmd *cobra.Command, args []string) {
 // If file is a regular file, search it and return.
 func fileSystemSearch(file string, opts *options) {
 	filesProcessed++
-	if !opts.FollowSyms && fileUtil.IsSymlink(file) {
+	if !opts.FollowSyms && fileutil.IsSymlink(file) {
 		return
 	}
 
-	if fileUtil.IsDir(file) {
+	if fileutil.IsDir(file) {
 		if opts.Config.IgnoreDir(file) {
 			return
 		}
@@ -171,7 +171,7 @@ func fileSystemSearch(file string, opts *options) {
 		return
 	}
 
-	if fileUtil.IsFile(file) {
+	if fileutil.IsFile(file) {
 		openSearches++
 		if openSearches > searchLimit {
 			<-c
@@ -211,7 +211,7 @@ func processFile(f *os.File, fileName string, opts *options, async bool) {
 		}
 
 		// We don't search binary files.
-		if fileUtil.IsBinaryData([]byte(s)) {
+		if fileutil.IsBinaryData([]byte(s)) {
 			if async {
 				c <- false
 			}
