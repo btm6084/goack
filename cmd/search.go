@@ -45,6 +45,7 @@ type options struct {
 	Inverse      bool
 	// IsTerminal records whether we're writing to a terminal or not. e.g. when piping output.
 	IsTerminal bool
+	MatchOnly  bool
 	NoColor    bool
 	Regex      *regexp.Regexp
 	Term       string
@@ -65,6 +66,9 @@ func init() {
 
 	searchCmd.Flags().BoolP("inverse", "v", false, "Print Only Lines that Do Not Match")
 	viper.BindPFlag("inverse", searchCmd.Flags().Lookup("inverse"))
+
+	searchCmd.Flags().BoolP("match-only", "m", false, "Print Only the Matching Text")
+	viper.BindPFlag("match-only", searchCmd.Flags().Lookup("match-only"))
 
 	searchCmd.Flags().BoolP("no-color", "", false, "Print Lines without Color")
 	viper.BindPFlag("no-color", searchCmd.Flags().Lookup("no-color"))
@@ -102,6 +106,7 @@ func search(cmd *cobra.Command, args []string) {
 		Insensitive:  viper.GetBool("insensitive"),
 		Inverse:      viper.GetBool("inverse"),
 		IsTerminal:   terminal.IsTerminal(int(os.Stdout.Fd())),
+		MatchOnly:    viper.GetBool("match-only"),
 		NoColor:      viper.GetBool("no-color"),
 		Term:         args[0],
 	}
@@ -116,6 +121,11 @@ func search(cmd *cobra.Command, args []string) {
 		opts.Regex = regexp.MustCompile("((?i)" + args[0] + ")")
 	} else {
 		opts.Regex = regexp.MustCompile("(" + args[0] + ")")
+	}
+
+	// Don't color match-only results.
+	if opts.MatchOnly {
+		opts.NoColor = true
 	}
 
 	file := "."
@@ -291,16 +301,37 @@ func Print(file string, lines []string, lineNums []int, opts *options) {
 		// Before
 		for i := opts.Before; i > 0; i-- {
 			if n-i-1 >= 0 {
-				writeLine(lines[n-i-1], strconv.Itoa(n-i)+"-", opts)
+				if opts.MatchOnly {
+					matches := getMatchingText(lines[n-i-1], opts.Regex)
+					for _, m := range matches {
+						writeLine(m, strconv.Itoa(n-i)+"-", opts)
+					}
+				} else {
+					writeLine(lines[n-i-1], strconv.Itoa(n-i)+"-", opts)
+				}
 			}
 		}
 
-		writeLine(lines[n-1], strconv.Itoa(n)+":", opts)
+		if opts.MatchOnly {
+			matches := getMatchingText(lines[n-1], opts.Regex)
+			for _, m := range matches {
+				writeLine(m, strconv.Itoa(n)+"-", opts)
+			}
+		} else {
+			writeLine(lines[n-1], strconv.Itoa(n)+":", opts)
+		}
 
 		// After
 		for i := 1; i <= opts.After; i++ {
 			if n+i < len(lines) {
-				writeLine(lines[n+i], strconv.Itoa(n+i)+"+", opts)
+				if opts.MatchOnly {
+					matches := getMatchingText(lines[n+1], opts.Regex)
+					for _, m := range matches {
+						writeLine(m, strconv.Itoa(n+i)+"-", opts)
+					}
+				} else {
+					writeLine(lines[n+i], strconv.Itoa(n+i)+"+", opts)
+				}
 			}
 		}
 
@@ -313,6 +344,16 @@ func Print(file string, lines []string, lineNums []int, opts *options) {
 	fmt.Println()
 	printLock.Unlock()
 }
+
+// getMatchingText returns ONLY the matching text.
+func getMatchingText(s string, re *regexp.Regexp) []string {
+	var matches []string
+	for _, m := range re.FindAllStringSubmatch(s, -1) {
+		matches = append(matches, m[0])
+	}
+	return matches
+}
+
 func writeLine(s, l string, opts *options) {
 	s = strings.TrimRight(s, "\n")
 
