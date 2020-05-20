@@ -23,9 +23,11 @@ goack -i "case (.+)[:]" .
 
 | Flag | Type | Description | Example
 --- | --- | --- | ---
+| `h` | Bool | Display Help Text | -h
 | `i` | Bool | Case insensitive search | -i
 | `v` | Bool | Inverse Search. Returns all lines that *do not* match the search term | -v
 | `l` | Bool | File Name Only | -l
+| `m` | Bool | Matched Text Only | -m
 | `follow` | Bool | Follow symlinks when building file search list. | -follow
 | `A` | Int | Returns X lines AFTER the match | -A=5
 | `B` | Int | Returns X lines BEFORE the match | -B=2
