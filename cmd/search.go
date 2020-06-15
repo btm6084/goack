@@ -32,6 +32,8 @@ var (
 	searchLimit  = 10
 
 	filesProcessed = 0
+
+	extensions = regexp.MustCompile(`[.]svg|jpg|png$`)
 )
 
 type options struct {
@@ -171,7 +173,7 @@ func fileSystemSearch(file string, opts *options) {
 		}
 
 		for _, f := range files {
-			if opts.Config.IgnoreDir(f.Name()) {
+			if opts.Config.IgnoreDir(f.Name()) || opts.Config.IgnoreExt(f.Name()) {
 				continue
 			}
 
