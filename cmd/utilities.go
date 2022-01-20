@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"io/ioutil"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -25,7 +26,11 @@ func (c *Config) IgnoreDir(file string) bool {
 
 // IgnoreExt returns true if a file should be ignored based on its extension.
 func (c *Config) IgnoreExt(file string) bool {
-	return c.extensions.MatchString(file)
+	if filepath.Ext(file) == "" {
+		return false
+	}
+
+	return c.extensions.MatchString(filepath.Ext(file))
 }
 
 func loadConfig() Config {
