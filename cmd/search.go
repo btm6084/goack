@@ -50,6 +50,7 @@ type options struct {
 	MatchOnly  bool
 	NoColor    bool
 	Regex      *regexp.Regexp
+	Skip       string
 	Term       string
 }
 
@@ -84,6 +85,9 @@ func init() {
 	searchCmd.Flags().IntP("context", "C", 0, "Number of Lines to Print Before and After Matches. Overrides Before and After Values")
 	viper.BindPFlag("context", searchCmd.Flags().Lookup("context"))
 
+	searchCmd.Flags().StringP("skip", "k", "", "Skip searching files whose filenames contain this string.")
+	viper.BindPFlag("skip", searchCmd.Flags().Lookup("skip"))
+
 	c = make(chan bool)
 }
 
@@ -110,6 +114,7 @@ func search(cmd *cobra.Command, args []string) {
 		IsTerminal:   terminal.IsTerminal(int(os.Stdout.Fd())),
 		MatchOnly:    viper.GetBool("match-only"),
 		NoColor:      viper.GetBool("no-color"),
+		Skip:         viper.GetString("skip"),
 		Term:         args[0],
 	}
 
@@ -173,6 +178,9 @@ func fileSystemSearch(file string, opts *options) {
 		}
 
 		for _, f := range files {
+			if opts.Skip != "" && strings.Contains(f.Name(), opts.Skip) {
+				continue
+			}
 			if opts.Config.IgnoreDir(f.Name()) || opts.Config.IgnoreExt(f.Name()) {
 				continue
 			}
