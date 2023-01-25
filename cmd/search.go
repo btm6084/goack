@@ -46,12 +46,13 @@ type options struct {
 	Insensitive  bool
 	Inverse      bool
 	// IsTerminal records whether we're writing to a terminal or not. e.g. when piping output.
-	IsTerminal bool
-	MatchOnly  bool
-	NoColor    bool
-	Regex      *regexp.Regexp
-	Skip       string
-	Term       string
+	IsTerminal  bool
+	MatchOnly   bool
+	NoColor     bool
+	AllowBinary bool
+	Regex       *regexp.Regexp
+	Skip        string
+	Term        string
 }
 
 func init() {
@@ -88,6 +89,9 @@ func init() {
 	searchCmd.Flags().StringP("skip", "k", "", "Skip searching files whose filenames contain this string.")
 	viper.BindPFlag("skip", searchCmd.Flags().Lookup("skip"))
 
+	searchCmd.Flags().BoolP("binary", "b", false, "Allow searching binary files")
+	viper.BindPFlag("binary", searchCmd.Flags().Lookup("binary"))
+
 	c = make(chan bool)
 }
 
@@ -113,6 +117,7 @@ func search(cmd *cobra.Command, args []string) {
 		Inverse:      viper.GetBool("inverse"),
 		IsTerminal:   terminal.IsTerminal(int(os.Stdout.Fd())),
 		MatchOnly:    viper.GetBool("match-only"),
+		AllowBinary:  viper.GetBool("binary"),
 		NoColor:      viper.GetBool("no-color"),
 		Skip:         viper.GetString("skip"),
 		Term:         args[0],
@@ -231,7 +236,7 @@ func processFile(f *os.File, fileName string, opts *options, async bool) {
 		}
 
 		// We don't search binary files.
-		if fileutil.IsBinaryData([]byte(s)) {
+		if !opts.AllowBinary && fileutil.IsBinaryData([]byte(s)) {
 			if async {
 				c <- false
 			}
