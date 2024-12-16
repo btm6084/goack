@@ -46,13 +46,14 @@ type options struct {
 	Insensitive  bool
 	Inverse      bool
 	// IsTerminal records whether we're writing to a terminal or not. e.g. when piping output.
-	IsTerminal  bool
-	MatchOnly   bool
-	NoColor     bool
-	AllowBinary bool
-	Regex       *regexp.Regexp
-	Skip        string
-	Term        string
+	IsTerminal    bool
+	ForceTerminal bool
+	MatchOnly     bool
+	NoColor       bool
+	AllowBinary   bool
+	Regex         *regexp.Regexp
+	Skip          string
+	Term          string
 }
 
 func init() {
@@ -92,6 +93,9 @@ func init() {
 	searchCmd.Flags().BoolP("binary", "b", false, "Allow searching binary files")
 	viper.BindPFlag("binary", searchCmd.Flags().Lookup("binary"))
 
+	searchCmd.Flags().BoolP("terminal", "t", false, "Force Terminal output even when piping")
+	viper.BindPFlag("terminal", searchCmd.Flags().Lookup("terminal"))
+
 	c = make(chan bool)
 }
 
@@ -107,20 +111,21 @@ Version: ` + VERSION,
 
 func search(cmd *cobra.Command, args []string) {
 	opts := options{
-		After:        viper.GetInt("after"),
-		Before:       viper.GetInt("before"),
-		Config:       loadConfig(),
-		FileNameOnly: viper.GetBool("nameonly"),
-		FollowSyms:   viper.GetBool("follow"),
-		Help:         viper.GetBool("help"),
-		Insensitive:  viper.GetBool("insensitive"),
-		Inverse:      viper.GetBool("inverse"),
-		IsTerminal:   terminal.IsTerminal(int(os.Stdout.Fd())),
-		MatchOnly:    viper.GetBool("match-only"),
-		AllowBinary:  viper.GetBool("binary"),
-		NoColor:      viper.GetBool("no-color"),
-		Skip:         viper.GetString("skip"),
-		Term:         args[0],
+		After:         viper.GetInt("after"),
+		Before:        viper.GetInt("before"),
+		Config:        loadConfig(),
+		FileNameOnly:  viper.GetBool("nameonly"),
+		FollowSyms:    viper.GetBool("follow"),
+		Help:          viper.GetBool("help"),
+		Insensitive:   viper.GetBool("insensitive"),
+		Inverse:       viper.GetBool("inverse"),
+		IsTerminal:    terminal.IsTerminal(int(os.Stdout.Fd())),
+		ForceTerminal: viper.GetBool("terminal"),
+		MatchOnly:     viper.GetBool("match-only"),
+		AllowBinary:   viper.GetBool("binary"),
+		NoColor:       viper.GetBool("no-color"),
+		Skip:          viper.GetString("skip"),
+		Term:          args[0],
 	}
 
 	ctx := viper.GetInt("context")
@@ -302,7 +307,7 @@ func Print(file string, lines []string, lineNums []int, opts *options) {
 	printLock.Lock()
 
 	// Suppress output of the filename when piping / non-terminal.
-	if opts.IsTerminal {
+	if opts.IsTerminal || opts.ForceTerminal {
 		fmt.Println(file)
 	}
 
@@ -378,7 +383,7 @@ func writeLine(s, l string, opts *options) {
 	}
 
 	// Suppress output of line numbers when piping / non-terminal.
-	if opts.IsTerminal {
+	if opts.IsTerminal || opts.ForceTerminal {
 		fmt.Println(l, s)
 	} else {
 		fmt.Println(s)
